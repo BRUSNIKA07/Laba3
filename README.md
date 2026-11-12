@@ -11,3 +11,5 @@ python -m django startproject casino
 python manage.py runserver
 
 Где-то я прописываю python -m, потому что винда банит exe
+
+это ветка санин(Вострика и Никишина)
