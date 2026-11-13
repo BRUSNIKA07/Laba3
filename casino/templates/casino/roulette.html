@@ -1,0 +1,38 @@
+{% extends 'casino/base.html' %}
+{% load static %}
+{% block title %}Рулетка{% endblock %}
+
+{% block content %}
+<section class="game" id="game" data-url="{% url 'roulette_spin' %}">
+  <h1>Рулетка</h1>
+
+  <div class="wheel-box">
+    <svg class="wheel" id="wheel" viewBox="-100 -100 200 200" aria-hidden="true"></svg>
+    <div class="ball-track" id="ball" aria-hidden="true"><span></span></div>
+    <i class="pointer"></i>
+  </div>
+
+  <div class="side">
+    <p class="status" id="status" role="status">Выберите ставку и число жетонов</p>
+
+    <fieldset class="controls" id="controls">
+      <div class="bets" role="group" aria-label="Ставка">
+        {% for b in bets %}
+        <button type="button" class="bet" data-bet="{{ b.key }}">
+          <i class="diamond {{ b.color }}"></i>
+          <span><b>{{ b.color_name }}</b><small>{{ b.parity_name }}</small></span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="note">Любая ставка платит ×{{ multiplier }}. Зеро забирает ставку.</p>
+
+      {% include 'casino/_chips.html' %}
+      <button type="button" class="spin" id="spin">Крутить</button>
+    </fieldset>
+  </div>
+</section>
+
+{{ pockets|json_script:"pockets" }}
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'casino/js/roulette.js' %}"></script>{% endblock %}

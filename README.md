@@ -1,15 +1,45 @@
-# Laba3
-сначала cd Laba3
-потом python -m venv .venv
-.\.venv\Scripts\activate 
+# Fortuna — казино на Django
 
+Рулетка и слоты на жетонах. Django + SQLite, страницы на шаблонах, оформление и анимация на CSS/JS.
+
+## Запуск
+
+```bash
+python -m venv venv
+venv\Scripts\activate          # macOS / Linux: source venv/bin/activate
 pip install -r requirements.txt
-
-
-запуск и помощь
-python -m django startproject casino
+python manage.py migrate
 python manage.py runserver
+```
 
-Где-то я прописываю python -m, потому что винда банит exe
+Открыть http://127.0.0.1:8000/ — тесты: `python manage.py test`.
 
-это ветка санин(Вострика и Никишина)
+## Как это устроено (MVC в терминах Django)
+
+| MVC | В Django | Где лежит |
+|---|---|---|
+| Model | Model | `casino/models.py` (игрок, журнал раундов), правила игр — `casino/games.py` |
+| View | Template | `casino/templates/casino/*.html`, стили и скрипты — `casino/static/casino/` |
+| Controller | View | `casino/views.py`, маршруты — `casino/urls.py` |
+
+Результат каждой игры выбирает сервер, а не браузер. Баланс списывается и начисляется атомарно в SQLite.
+
+## Правила
+
+- Старт: 10 жетонов, ставка в каждой игре от 1 до 5.
+- Рулетка: 37 секторов (0 и 36 чисел), четыре ставки — красное чётное, красное нечётное, чёрное чётное, чёрное нечётное. У каждой 9 чисел из 37, выплата ×4. Зеро забирает ставку.
+- Слоты: сетка 3×3, выигрыш считается только по центральной линии — позиции (1,2), (2,2), (3,2) в виде (колонка, ряд). Три одинаковых символа умножают ставку по таблице.
+
+Менять правила: `casino/games.py` (`SLOT_PAYTABLE`, `WIN_LINE`, `ROULETTE_MULTIPLIER`, `MIN_BET`, `MAX_BET`).
+
+## Тема
+
+Тёмная по умолчанию. Кнопка в шапке переключает тему, выбор хранится в `localStorage`. Цвета обеих тем — переменные в начале `style.css`. Светлая тема пока заготовка.
+
+## Если жетоны закончились
+
+Пока нет мини-игр для заработка: очистите cookie сайта (будет новый игрок с 10 жетонами) или поправьте баланс в админке — `python manage.py createsuperuser`, затем `/admin/`.
+
+## Дальше: аккаунты
+
+В Django уже есть `django.contrib.auth`: имя пользователя и пароль хранятся в SQLite, пароль — в виде хеша, а не открытым текстом. Достаточно добавить в `Player` поле `user = OneToOneField(User, null=True)` и страницы входа и регистрации. Кнопки в меню аккаунта сейчас отключены.

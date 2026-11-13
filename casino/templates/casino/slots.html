@@ -1,0 +1,38 @@
+{% extends 'casino/base.html' %}
+{% load static %}
+{% block title %}Слоты{% endblock %}
+
+{% block content %}
+<section class="game" id="game" data-url="{% url 'slots_spin' %}">
+  <h1>Слоты</h1>
+
+  <div class="machine" id="machine">
+    <div class="reels">
+      {% for column in columns %}
+      <div class="reel"><div class="strip">{% for symbol in column %}<div class="cell">{{ symbol }}</div>{% endfor %}</div></div>
+      {% endfor %}
+      <i class="payline"></i>
+    </div>
+  </div>
+
+  <div class="side">
+    <p class="status" id="status" role="status">Выигрывают три одинаковых символа на центральной линии</p>
+
+    <fieldset class="controls" id="controls">
+      {% include 'casino/_chips.html' %}
+      <button type="button" class="spin" id="spin">Крутить</button>
+    </fieldset>
+
+    <table class="paytable">
+      <caption>Во сколько раз растёт ставка</caption>
+      {% for symbol, weight, multiplier in paytable %}
+      <tr><td>{{ symbol }}{{ symbol }}{{ symbol }}</td><td>×{{ multiplier }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+
+{{ symbols|json_script:"symbols" }}
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'casino/js/slots.js' %}"></script>{% endblock %}
