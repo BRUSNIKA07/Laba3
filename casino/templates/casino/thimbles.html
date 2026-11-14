@@ -1,0 +1,39 @@
+{% extends 'casino/base.html' %}
+{% load static %}
+{% block title %}Наперстки{% endblock %}
+
+{% block content %}
+<section class="game" id="game" data-start="{% url 'thimbles_start' %}" data-round="{% url 'thimbles_round' %}" data-pick="{% url 'thimbles_pick' %}" data-cashout="{% url 'thimbles_cashout' %}">
+  <h1>Наперстки</h1>
+
+  <div class="thimble-table" id="table">
+    <i class="board"></i>
+    {% for i in "012" %}
+    <button type="button" class="cup" style="--slot: {{ forloop.counter0 }}" aria-label="Стакан {{ forloop.counter }}">
+      <span class="ball"></span>
+      <svg class="cup-art" aria-hidden="true"><use href="#cup"/></svg>
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="side">
+    <p class="status" id="status" role="status">Поставьте жетоны и нажмите «Играть»</p>
+
+    <div class="supers" id="supers" hidden>
+      <button type="button" class="spin" id="super">Супер игра</button>
+      <button type="button" class="spin take" id="take">Забрать</button>
+    </div>
+
+    <fieldset class="controls" id="controls">
+      {% include 'casino/_chips.html' %}
+      <button type="button" class="spin" id="play">Играть</button>
+    </fieldset>
+
+    <p class="note">Угадал стакан — ставка ×2. Дальше можно рискнуть в «супер игре»: ×3, ×4… Ошибся — всё сгорает, поэтому выигрыш можно забрать в любой момент.</p>
+  </div>
+</section>
+
+{{ round_state|json_script:"round" }}
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'casino/js/thimbles.js' %}"></script>{% endblock %}
