@@ -6,7 +6,7 @@
 pip install -r requirements.txt
 
 
-запуск и помощь
+запуск и помощь s
 python -m django startproject casino
 python manage.py runserver
 
