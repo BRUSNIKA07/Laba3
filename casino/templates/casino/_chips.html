@@ -1,0 +1,3 @@
+<div class="chips" role="group" aria-label="Сколько жетонов поставить">
+  {% for n in amounts %}<button type="button" class="chip" data-amount="{{ n }}" title="Поставить {{ n }}">{{ n }}</button>{% endfor %}
+</div>

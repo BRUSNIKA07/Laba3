@@ -1,0 +1,59 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}{% endblock %} — Fortuna</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600;700&family=Prata&display=swap">
+  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'</script>
+  <link rel="stylesheet" href="{% static 'casino/css/style.css' %}">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="{% url 'index' %}"><i class="coin"></i><span>Fortuna</span></a>
+
+  <div class="tools">
+    <div class="balance" title="Ваши жетоны"><i class="coin"></i><b data-balance>{{ player.balance }}</b></div>
+
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Сменить тему" title="Сменить тему">
+      <svg class="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+      <svg class="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.5 8.5 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2z"/></svg>
+    </button>
+
+    <div class="account">
+      <button class="icon-btn" id="account-btn" type="button" aria-label="Аккаунт" aria-haspopup="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      </button>
+      <div class="menu" id="account-menu" hidden>
+        <b>Гость</b>
+        <span>Жетонов: <b data-balance>{{ player.balance }}</b></span>
+        <small>Аккаунты появятся позже. Пока вы играете как гость.</small>
+        <button type="button" disabled>Войти</button>
+        <button type="button" disabled>Создать аккаунт</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" id="drawer">
+  <nav>
+    <a href="{% url 'roulette' %}"{% if active == 'roulette' %} class="active"{% endif %}>Рулетка</a>
+    <a href="{% url 'slots' %}"{% if active == 'slots' %} class="active"{% endif %}>Слоты</a>
+  </nav>
+  <button class="drawer-toggle" id="drawer-toggle" type="button" aria-label="Выбор игры" title="Выбор игры" aria-expanded="false">
+    <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
+</aside>
+
+<main class="stage">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{% static 'casino/js/common.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
