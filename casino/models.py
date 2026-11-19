@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models, transaction
 from django.db.models import F
 
@@ -5,17 +6,20 @@ START_TOKENS = 10
 
 
 class Player(models.Model):
-    """Игрок. Пока это гость, привязанный к сессии браузера.
-    Позже сюда добавится связь с учётной записью (user = OneToOneField(User))."""
+    """Игрок: либо учётная запись (user), либо гость, привязанный к сессии браузера."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                on_delete=models.CASCADE, related_name='player')
     balance = models.PositiveIntegerField('жетоны', default=START_TOKENS)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'Игрок #{self.pk}: {self.balance}'
+        return f'{self.user or "Гость"} #{self.pk}: {self.balance}'
 
     @classmethod
     def for_request(cls, request):
-        """Игрок текущей сессии; при первом заходе создаётся с 10 жетонами."""
+        """Игрок вошедшего аккаунта; иначе гость текущей сессии (создаётся с 10 жетонами)."""
+        if request.user.is_authenticated:
+            return cls.objects.get_or_create(user=request.user)[0]
         player = cls.objects.filter(pk=request.session.get('player_id')).first()
         if player is None:
             player = cls.objects.create()

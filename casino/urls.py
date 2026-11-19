@@ -7,5 +7,12 @@ urlpatterns = [
     path('roulette/', views.roulette, name='roulette'),
     path('roulette/spin/', views.roulette_spin, name='roulette_spin'),
     path('slots/', views.slots, name='slots'),
+    path('minigames/', views.minigames, name='minigames'),
+    path('minigames/start/', views.minigame_start, name='minigame_start'),
+    path('minigames/finish/', views.minigame_finish, name='minigame_finish'),
+    path('minigames/code/', views.secret_code, name='secret_code'),
+    path('login/', views.login_view, name='login'),
+    path('register/', views.register_view, name='register'),
+    path('logout/', views.logout_view, name='logout'),
     path('slots/spin/', views.slots_spin, name='slots_spin'),
 ]

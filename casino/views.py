@@ -1,10 +1,13 @@
 import json
+import time
 
+from django.contrib.auth import login, logout
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from . import games
+from .forms import LoginForm, RegisterForm
 from .models import Player
 
 AMOUNTS = range(games.MIN_BET, games.MAX_BET + 1)
@@ -35,6 +38,86 @@ def slots(request):
         'paytable': games.SLOT_PAYTABLE,
         'amounts': AMOUNTS,
     })
+
+
+# ── Аккаунты ─────────────────────────────────────────────────────────────
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    form = RegisterForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()                      # заодно создаёт Player с 10 жетонами
+        login(request, user)
+        return redirect('index')
+    return render(request, 'casino/register.html', {'form': form, 'player': Player.for_request(request)})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    form = LoginForm(request, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        login(request, form.get_user())
+        return redirect('index')
+    return render(request, 'casino/login.html', {'form': form, 'player': Player.for_request(request)})
+
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    return redirect('index')
+
+
+# ── Мини-игры ────────────────────────────────────────────────────────────
+def minigames(request):
+    return render(request, 'casino/minigames.html', {
+        'player': Player.for_request(request), 'active': 'minigames', 'cap': games.MINIGAME_CAP,
+        'minigames': games.MINIGAMES,
+    })
+
+
+def _json_body(request):
+    try:
+        return json.loads(request.body)
+    except (ValueError, TypeError):
+        return {}
+
+
+@require_POST
+def minigame_start(request):
+    game = _json_body(request).get('game')
+    if game not in games.MINIGAMES:
+        return _error('Неизвестная игра')
+    request.session['mg_start'] = {'game': game, 'at': time.time()}
+    return JsonResponse({'ok': True})
+
+
+@require_POST
+def minigame_finish(request):
+    """Сервер сам считает награду: время партии берёт из своей отметки, а не от браузера."""
+    data = _json_body(request)
+    started = request.session.pop('mg_start', None)
+    if not started or started['game'] != data.get('game'):
+        return _error('Партия не начата')
+    try:
+        score = int(data.get('score', 0))
+    except (ValueError, TypeError):
+        return _error('Некорректный результат')
+    reward = games.minigame_reward(started['game'], score, bool(data.get('won')), time.time() - started['at'])
+    player = Player.for_request(request)
+    if reward:
+        player.settle(started['game'], 0, reward, f'score {score}')
+    return JsonResponse({'ok': True, 'reward': reward, 'balance': player.balance})
+
+
+@require_POST
+def secret_code(request):
+    code = str(_json_body(request).get('code', '')).strip().casefold()
+    if code != games.BONUS_CODE:
+        return _error('Код не подошёл')
+    player = Player.for_request(request)
+    player.settle('code', 0, games.BONUS_AMOUNT, 'dev code')
+    return JsonResponse({'ok': True, 'reward': games.BONUS_AMOUNT, 'balance': player.balance})
 
 
 # ── Ходы игры (JSON для скриптов на странице) ────────────────────────────
