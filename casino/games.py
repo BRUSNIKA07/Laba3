@@ -74,3 +74,27 @@ def spin_slots(amount):
     multiplier = next(m for s, _, m in SLOT_PAYTABLE if s == line[0])
     return {'grid': grid, 'line': line, 'win': win,
             'payout': amount * multiplier if win else 0}
+
+
+# ── Мини-игры: заработок жетонов ─────────────────────────────────────────
+MINIGAME_CAP = 10            # потолок жетонов за одну партию
+BONUS_CODE = 'месенев топ'   # секретный код разработчиков (сравнивается без учёта регистра)
+BONUS_AMOUNT = 99999
+
+# per — сколько очков даёт 1 жетон; min_sec_per_point — быстрее этого набрать очки физически нельзя
+# (серверная проверка от накрутки). Сапёр: фиксированная награда за победу, не быстрее min_win_sec.
+MINIGAMES = {
+    'snake':  {'title': 'Змейка',      'per': 3, 'min_sec_per_point': 0.3},
+    'flappy': {'title': 'Flappy Bird', 'per': 3, 'min_sec_per_point': 1.0},
+    'mines':  {'title': 'Сапёр',       'win_reward': 8, 'min_win_sec': 5},
+}
+
+
+def minigame_reward(game, score, won, elapsed):
+    """Жетоны за партию. Возвращает 0, если результат нереалистичен для прошедшего времени."""
+    cfg = MINIGAMES[game]
+    if game == 'mines':
+        return min(MINIGAME_CAP, cfg['win_reward']) if won and elapsed >= cfg['min_win_sec'] else 0
+    if score < 0 or score * cfg['min_sec_per_point'] > elapsed:
+        return 0
+    return min(MINIGAME_CAP, score // cfg['per'])
