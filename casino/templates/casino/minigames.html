@@ -1,0 +1,27 @@
+{% extends 'casino/base.html' %}
+{% load static %}
+{% block title %}Мини-игры{% endblock %}
+{% block content %}
+<section class="mg" data-start="{% url 'minigame_start' %}" data-finish="{% url 'minigame_finish' %}" data-code="{% url 'secret_code' %}">
+  <h1>Мини-игры</h1>
+  <p class="mg-lead">Заработайте жетоны: за одну партию — не больше {{ cap }}.</p>
+
+  <div class="mg-tabs" role="tablist">
+    <button type="button" class="active" data-game="snake">Змейка <small>1 жетон за 3 яблока</small></button>
+    <button type="button" data-game="flappy">Flappy Bird <small>1 жетон за 3 трубы</small></button>
+    <button type="button" data-game="mines">Сапёр <small>8 жетонов за победу</small></button>
+  </div>
+
+  <div class="mg-board">
+    <div class="mg-bar"><span id="mg-score">Очки: 0</span><button type="button" id="mg-start">Старт</button></div>
+    <canvas id="mg-canvas" width="300" height="300"></canvas>
+    <div id="mg-mines" hidden></div>
+    <p id="mg-msg" class="status" aria-live="polite"></p>
+  </div>
+
+  <form class="mg-code" id="mg-code" autocomplete="off">
+    <input type="text" id="mg-code-input" aria-label="Код" placeholder="Код" maxlength="40">
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'casino/js/minigames.js' %}"></script>{% endblock %}

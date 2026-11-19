@@ -29,11 +29,17 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
       </button>
       <div class="menu" id="account-menu" hidden>
+        {% if user.is_authenticated %}
+        <b>{{ user.username }}</b>
+        <span>Жетонов: <b data-balance>{{ player.balance }}</b></span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Выйти</button></form>
+        {% else %}
         <b>Гость</b>
         <span>Жетонов: <b data-balance>{{ player.balance }}</b></span>
-        <small>Аккаунты появятся позже. Пока вы играете как гость.</small>
-        <button type="button" disabled>Войти</button>
-        <button type="button" disabled>Создать аккаунт</button>
+        <small>Войдите, чтобы жетоны сохранялись в аккаунте.</small>
+        <a class="menu-btn" href="{% url 'login' %}">Войти</a>
+        <a class="menu-btn" href="{% url 'register' %}">Создать аккаунт</a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -43,6 +49,7 @@
   <nav>
     <a href="{% url 'roulette' %}"{% if active == 'roulette' %} class="active"{% endif %}>Рулетка</a>
     <a href="{% url 'slots' %}"{% if active == 'slots' %} class="active"{% endif %}>Слоты</a>
+    <a href="{% url 'minigames' %}"{% if active == 'minigames' %} class="active"{% endif %}>Мини-игры</a>
   </nav>
   <button class="drawer-toggle" id="drawer-toggle" type="button" aria-label="Выбор игры" title="Выбор игры" aria-expanded="false">
     <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
