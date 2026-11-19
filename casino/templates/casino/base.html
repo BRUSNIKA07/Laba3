@@ -7,14 +7,15 @@
   <title>{% block title %}{% endblock %} — Fortuna</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600;700&family=Prata&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600;700&family=Prata&family=Ruslan+Display&display=swap">
   <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'</script>
   <link rel="stylesheet" href="{% static 'casino/css/style.css' %}">
 </head>
 <body>
+{% include 'casino/_sprite.html' %}
 
 <header class="topbar">
-  <a class="brand" href="{% url 'index' %}"><i class="coin"></i><span>Fortuna</span></a>
+  <a class="brand" href="{% url 'index' %}"><svg class="brand-sun" aria-hidden="true"><use href="#sym-sun"/></svg><span>Fortuna</span></a>
 
   <div class="tools">
     <div class="balance" title="Ваши жетоны"><i class="coin"></i><b data-balance>{{ player.balance }}</b></div>
@@ -49,6 +50,7 @@
   <nav>
     <a href="{% url 'roulette' %}"{% if active == 'roulette' %} class="active"{% endif %}>Рулетка</a>
     <a href="{% url 'slots' %}"{% if active == 'slots' %} class="active"{% endif %}>Слоты</a>
+    <a href="{% url 'thimbles' %}"{% if active == 'thimbles' %} class="active"{% endif %}>Наперстки</a>
     <a href="{% url 'minigames' %}"{% if active == 'minigames' %} class="active"{% endif %}>Мини-игры</a>
   </nav>
   <button class="drawer-toggle" id="drawer-toggle" type="button" aria-label="Выбор игры" title="Выбор игры" aria-expanded="false">

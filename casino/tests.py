@@ -17,9 +17,9 @@ class GamesTests(SimpleTestCase):
         self.assertEqual(sorted(games.WHEEL), list(range(37)))
 
     def test_slots_pay_only_on_center_line(self):
-        other = ['🍋', '🔔', '⭐']
-        top_row = [['🍒'] * 3, other, other]
-        middle_row = [other, ['🍒'] * 3, other]
+        other = ['gromovik', 'lunnitsa', 'zhar']
+        top_row = [['pole'] * 3, other, other]
+        middle_row = [other, ['pole'] * 3, other]
         with patch.object(games, 'random_grid', return_value=top_row):
             self.assertFalse(games.spin_slots(1)['win'])
         with patch.object(games, 'random_grid', return_value=middle_row):
@@ -97,3 +97,57 @@ class MinigameTests(TestCase):
         res = self.post('secret_code', {'code': ' Месенев ТОП '})
         self.assertEqual(res.json()['balance'], 10 + games.BONUS_AMOUNT)
         self.assertEqual(self.post('secret_code', {'code': 'месенев топ'}).json()['balance'], 10 + 2 * games.BONUS_AMOUNT)
+
+
+class ThimblesTests(TestCase):
+    """Шарик всегда под стаканом 0; время подменяем, чтобы пройти проверку «не слишком быстро»."""
+    def post(self, name, **data):
+        return self.client.post(reverse(name), data, content_type='application/json')
+
+    def start(self, amount):
+        with patch.object(games, 'thimble_ball', return_value=0), patch('casino.views.time.time', return_value=1000.0):
+            return self.post('thimbles_start', amount=amount)
+
+    def pick(self, cup=0):
+        with patch('casino.views.time.time', return_value=1010.0):
+            return self.post('thimbles_pick', cup=cup)
+
+    def next_round(self):
+        with patch.object(games, 'thimble_ball', return_value=0), patch('casino.views.time.time', return_value=1000.0):
+            return self.post('thimbles_round')
+
+    def test_win_then_cashout_pays_bet_times_two(self):
+        res = self.start(3).json()
+        self.assertEqual((res['balance'], res['ball']), (7, 0))
+        res = self.pick(0).json()
+        self.assertEqual((res['multiplier'], res['ball']), (2, 0))      # ball нужен скрипту для показа
+        res = self.post('thimbles_cashout').json()
+        self.assertEqual((res['payout'], res['balance']), (6, 13))
+
+    def test_super_game_raises_multiplier_each_win(self):
+        self.start(2)
+        self.pick(0)
+        self.assertEqual(self.post('thimbles_pick', cup=0).status_code, 400)     # новый ход ещё не начат
+        self.next_round()
+        self.assertEqual(self.pick(0).json()['multiplier'], 3)
+        self.assertEqual(self.post('thimbles_cashout').json()['payout'], 6)
+
+    def test_miss_burns_bet_and_ends_round(self):
+        self.start(2)
+        self.pick(0)
+        self.next_round()
+        res = self.pick(1).json()
+        self.assertEqual((res['win'], res['ball']), (False, 0))
+        self.assertEqual(Player.objects.get().balance, 8)
+        self.assertEqual(self.post('thimbles_cashout').status_code, 400)
+        self.assertEqual(self.start(1).status_code, 200)
+
+    def test_rules_are_enforced(self):
+        self.assertEqual(self.pick(0).status_code, 400)                            # партии нет
+        self.assertEqual(self.start(6).status_code, 400)
+        self.start(1)
+        self.assertEqual(self.start(1).status_code, 400)                           # уже идёт партия
+        self.assertEqual(self.pick(3).status_code, 400)
+        self.assertEqual(self.post('thimbles_cashout').status_code, 400)           # ещё нет побед
+        with patch('casino.views.time.time', return_value=1001.0):                 # слишком быстро
+            self.assertEqual(self.post('thimbles_pick', cup=0).status_code, 400)

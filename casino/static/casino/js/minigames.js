@@ -8,6 +8,7 @@
 
   let current = 'snake', running = null;   // running: { stop() } пока идёт партия
 
+  const icon = n => `<svg class="ic" aria-hidden="true"><use href="#sym-${n}"/></svg>`;
   const setScore = n => { scoreEl.textContent = 'Очки: ' + n; };
 
   async function finish(game, score, won) {
@@ -44,12 +45,44 @@
     canvas.addEventListener('touchstart', onTouchStart, { passive: true });
     canvas.addEventListener('touchend', onTouchEnd);
 
+    // Рисуем: поле-вышивка, змей с золотыми ромбами на спине, молодильное яблоко
     function draw() {
-      ctx.fillStyle = css('--surface'); ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = css('--lose'); ctx.fillRect(apple[0] * S + 3, apple[1] * S + 3, S - 6, S - 6);
-      ctx.fillStyle = css('--win');
-      body.forEach(([x, y], i) => { ctx.globalAlpha = i ? .8 : 1; ctx.fillRect(x * S + 1, y * S + 1, S - 2, S - 2); });
-      ctx.globalAlpha = 1;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        ctx.fillStyle = (x + y) % 2 ? '#24130d' : '#2c1810'; ctx.fillRect(x * S, y * S, S, S);
+        ctx.fillStyle = '#ffffff14'; ctx.fillRect(x * S + S / 2 - 1, y * S + S / 2 - 1, 2, 2);
+      }
+      const c = ([x, y]) => [x * S + S / 2, y * S + S / 2];
+      // яблоко
+      const [ax, ay] = c(apple), g = ctx.createRadialGradient(ax - 3, ay - 3, 1, ax, ay, S * .45);
+      g.addColorStop(0, '#fff2a8'); g.addColorStop(.5, '#f0b429'); g.addColorStop(1, '#c7343c');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ax, ay + 1, S * .36, 0, 7); ctx.fill();
+      ctx.fillStyle = '#4caf50'; ctx.beginPath(); ctx.ellipse(ax + 4, ay - S * .34, 4, 2, -.6, 0, 7); ctx.fill();
+      // тело: тёмная обводка + зелёная чешуя
+      ctx.lineJoin = ctx.lineCap = 'round';
+      [[S * .86, '#0f3d22'], [S * .68, '#2f9a55']].forEach(([w, col]) => {
+        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath();
+        body.forEach((b, i) => { const [x, y] = c(b); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#e8c46a';
+      body.forEach((b, i) => {
+        if (!i || i % 2) return;
+        const [x, y] = c(b); ctx.beginPath();
+        ctx.moveTo(x, y - 4); ctx.lineTo(x + 4, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 4, y); ctx.fill();
+      });
+      // голова: глаза и раздвоенный язык по направлению движения
+      const [hx, hy] = c(body[0]), px = -dir[1], py = dir[0];
+      ctx.fillStyle = '#3fb866'; ctx.beginPath(); ctx.arc(hx, hy, S * .46, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#c7343c'; ctx.lineWidth = 2; ctx.beginPath();
+      const tx = hx + dir[0] * S * .5, ty = hy + dir[1] * S * .5;
+      ctx.moveTo(hx + dir[0] * S * .4, hy + dir[1] * S * .4); ctx.lineTo(tx, ty);
+      ctx.lineTo(tx + dir[0] * 4 + px * 3, ty + dir[1] * 4 + py * 3);
+      ctx.moveTo(tx, ty); ctx.lineTo(tx + dir[0] * 4 - px * 3, ty + dir[1] * 4 - py * 3); ctx.stroke();
+      [-1, 1].forEach(k => {
+        const ex = hx + dir[0] * S * .12 + px * k * S * .22, ey = hy + dir[1] * S * .12 + py * k * S * .22;
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, 3, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(ex + dir[0], ey + dir[1], 1.6, 0, 7); ctx.fill();
+      });
     }
     const timer = setInterval(() => {
       dir = next;
@@ -82,6 +115,61 @@
     addEventListener('keydown', onKey);
     canvas.addEventListener('pointerdown', flap);
 
+    // Закат, солнце и ельник, плывущий назад; снизу — полоса-вышивка
+    function scene(off) {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#2a1740'); sky.addColorStop(.55, '#8a3b4a'); sky.addColorStop(1, '#e89a5a');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ffd98a'; ctx.beginPath(); ctx.arc(W * .72, H * .68, 38, 0, 7); ctx.fill();
+      [[.35, '#3a1c33', 44, 46], [.6, '#1f0f1d', 30, 32]].forEach(([k, col, w, h], n) => {
+        ctx.fillStyle = col;
+        const shift = (off * k) % w;
+        for (let x = -w - shift; x < W + w; x += w) {
+          const base = H - 10 - n * 10;
+          ctx.beginPath(); ctx.moveTo(x, base); ctx.lineTo(x + w / 2, base - h); ctx.lineTo(x + w, base); ctx.fill();
+        }
+      });
+      ctx.fillStyle = '#3b1a0d'; ctx.fillRect(0, H - 10, W, 10);
+      ctx.fillStyle = '#c7343c';
+      for (let x = -((off * 2) % 14); x < W; x += 14) {
+        ctx.beginPath(); ctx.moveTo(x, H - 10); ctx.lineTo(x + 7, H - 3); ctx.lineTo(x + 14, H - 10); ctx.fill();
+      }
+    }
+    // Резной столб с красной шапкой и золотыми зарубками; capDown — шапка внизу (верхний столб)
+    function pillar(x, y0, y1, capDown) {
+      const g = ctx.createLinearGradient(x, 0, x + PW, 0);
+      g.addColorStop(0, '#4a2412'); g.addColorStop(.5, '#8a4a24'); g.addColorStop(1, '#4a2412');
+      ctx.fillStyle = g; ctx.fillRect(x, y0, PW, y1 - y0);
+      ctx.fillStyle = '#e8c46a';
+      for (let yy = y0 + 8; yy < y1 - 16; yy += 22) {
+        ctx.beginPath(); ctx.moveTo(x + PW / 2, yy); ctx.lineTo(x + PW / 2 + 7, yy + 7);
+        ctx.lineTo(x + PW / 2, yy + 14); ctx.lineTo(x + PW / 2 - 7, yy + 7); ctx.fill();
+      }
+      const cy = capDown ? y1 - 14 : y0;
+      ctx.fillStyle = '#c7343c'; ctx.fillRect(x - 4, cy, PW + 8, 14);
+      ctx.fillStyle = '#e8c46a'; ctx.fillRect(x - 4, capDown ? cy : cy + 11, PW + 8, 3);
+    }
+    // Жар-птица: хвост-веер, крыло машет, наклон по скорости
+    function firebird(x, y, vy, t) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.max(-.5, Math.min(.9, vy * .07)));
+      ctx.shadowColor = '#ffb02e'; ctx.shadowBlur = 14;
+      ['#c7343c', '#f07a2a', '#ffd36a'].forEach((col, i) => {
+        ctx.save(); ctx.rotate(Math.PI + (i - 1) * .42); ctx.fillStyle = col;
+        ctx.beginPath(); ctx.ellipse(18, 0, 15, 4.5, 0, 0, 7); ctx.fill(); ctx.restore();
+      });
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#f07a2a'; ctx.beginPath(); ctx.ellipse(0, 0, 13, 10, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#f1a82e'; ctx.beginPath(); ctx.arc(11, -5, 6.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c7343c'; ctx.beginPath(); ctx.moveTo(16, -7); ctx.lineTo(24, -4); ctx.lineTo(16, -2); ctx.fill();
+      ctx.strokeStyle = '#c7343c'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(8, -10); ctx.lineTo(5, -16); ctx.moveTo(11, -11); ctx.lineTo(11, -18); ctx.stroke();
+      ctx.fillStyle = '#2a1410'; ctx.beginPath(); ctx.arc(13, -6, 1.5, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(-2, -1); ctx.rotate(-.4 + Math.sin(t * .35) * .8);
+      ctx.fillStyle = '#ffd36a'; ctx.strokeStyle = '#7a3a10'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(-6, 0, 12, 5, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.restore();
+    }
+
     function loop() {
       frame++;
       vy += 0.38; y += vy;
@@ -93,10 +181,9 @@
         if (BX + R > p.x && BX - R < p.x + PW && (y - R < p.top || y + R > p.top + GAP)) hit = true;
         if (!p.passed && p.x + PW < BX - R) { p.passed = true; score++; setScore(score); }
       }
-      ctx.fillStyle = css('--surface'); ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = css('--green');
-      pipes.forEach(p => { ctx.fillRect(p.x, 0, PW, p.top); ctx.fillRect(p.x, p.top + GAP, PW, H); });
-      ctx.fillStyle = css('--brass'); ctx.beginPath(); ctx.arc(BX, y, R, 0, 7); ctx.fill();
+      scene(frame * .6);
+      pipes.forEach(p => { pillar(p.x, 0, p.top, true); pillar(p.x, p.top + GAP, H, false); });
+      firebird(BX, y, vy, frame);
       if (hit) return end();
       raf = requestAnimationFrame(loop);
     }
@@ -116,8 +203,8 @@
     boardMines.innerHTML = '';
     const grid = document.createElement('div'); grid.className = 'mines-grid';
     const flagBtn = document.createElement('button');
-    flagBtn.type = 'button'; flagBtn.className = 'mines-flag'; flagBtn.textContent = '⚑ Флажок: выкл';
-    flagBtn.onclick = () => { flagMode = !flagMode; flagBtn.textContent = '⚑ Флажок: ' + (flagMode ? 'вкл' : 'выкл'); };
+    flagBtn.type = 'button'; flagBtn.className = 'mines-flag'; flagBtn.textContent = 'Вымпел: выкл';
+    flagBtn.onclick = () => { flagMode = !flagMode; flagBtn.textContent = 'Вымпел: ' + (flagMode ? 'вкл' : 'выкл'); };
     boardMines.append(flagBtn, grid);
     cells = Array.from({ length: N * N }, (_, i) => {
       const el = document.createElement('button'); el.type = 'button'; el.className = 'cell';
@@ -143,7 +230,7 @@
     }
     function flag(i) {
       const c = cells[i]; if (over || c.open) return;
-      c.flag = !c.flag; c.el.textContent = c.flag ? '⚑' : '';
+      c.flag = !c.flag; c.el.innerHTML = c.flag ? icon('flag') : '';
     }
     function open(i) {
       const c = cells[i]; if (over || c.open || c.flag) return;
@@ -151,7 +238,7 @@
       c.open = true; c.el.classList.add('open');
       if (c.mine) {
         over = true; c.el.classList.add('boom');
-        cells.forEach(k => { if (k.mine) k.el.textContent = '✹'; });
+        cells.forEach(k => { if (k.mine) k.el.innerHTML = icon('mine'); });
         return finish('mines', 0, false);
       }
       opened++;

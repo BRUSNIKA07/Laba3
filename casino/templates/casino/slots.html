@@ -9,7 +9,7 @@
   <div class="machine" id="machine">
     <div class="reels">
       {% for column in columns %}
-      <div class="reel"><div class="strip">{% for symbol in column %}<div class="cell">{{ symbol }}</div>{% endfor %}</div></div>
+      <div class="reel"><div class="strip">{% for symbol in column %}<div class="cell" data-s="{{ symbol }}">{% include 'casino/_sym.html' with s=symbol %}</div>{% endfor %}</div></div>
       {% endfor %}
       <i class="payline"></i>
     </div>
@@ -26,13 +26,14 @@
     <table class="paytable">
       <caption>Во сколько раз растёт ставка</caption>
       {% for symbol, weight, multiplier in paytable %}
-      <tr><td>{{ symbol }}{{ symbol }}{{ symbol }}</td><td>×{{ multiplier }}</td></tr>
+      <tr><td>{% include 'casino/_sym.html' with s=symbol %}{% include 'casino/_sym.html' with s=symbol %}{% include 'casino/_sym.html' with s=symbol %}</td><td>×{{ multiplier }}</td></tr>
       {% endfor %}
     </table>
   </div>
 </section>
 
 {{ symbols|json_script:"symbols" }}
+{{ names|json_script:"names" }}
 {% endblock %}
 
 {% block scripts %}<script src="{% static 'casino/js/slots.js' %}"></script>{% endblock %}

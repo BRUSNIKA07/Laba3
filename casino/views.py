@@ -35,8 +35,18 @@ def slots(request):
         'active': 'slots',
         'columns': list(zip(*games.random_grid())),   # grid[ряд][колонка] → по барабанам
         'symbols': [s for s, _, _ in games.SLOT_PAYTABLE],
+        'names': games.SLOT_NAMES,
         'paytable': games.SLOT_PAYTABLE,
         'amounts': AMOUNTS,
+    })
+
+
+def thimbles(request):
+    return render(request, 'casino/thimbles.html', {
+        'player': Player.for_request(request),
+        'active': 'thimbles',
+        'amounts': AMOUNTS,
+        'round_state': _thimbles_state(request.session.get('thimbles')),
     })
 
 
@@ -165,3 +175,86 @@ def slots_spin(request):
     if not player.settle('slots', amount, result['payout'], ' '.join(result['line'])):
         return _error('Недостаточно жетонов')
     return JsonResponse({'ok': True, **result, 'cells': games.WIN_LINE, 'balance': player.balance})
+
+
+# ── Наперстки: партия хранится в сессии, исход каждого хода считает сервер ──
+def _thimbles_state(rnd):
+    """Описание партии для скрипта: сколько уже выиграно и что дальше. None, если партии нет."""
+    if not rnd:
+        return None
+    wins = rnd['wins']
+    return {'bet': rnd['bet'], 'wins': wins,
+            'multiplier': games.thimbles_multiplier(wins),
+            'pot': rnd['bet'] * games.thimbles_multiplier(wins) if wins else 0,
+            'next': games.thimbles_multiplier(wins + 1),
+            'ball': rnd.get('ball')}          # None, пока ход не начат
+
+
+def _thimbles_new_ball(rnd):
+    """Новый шарик для хода: запоминаем стакан и время, чтобы ответ нельзя было дать мгновенно."""
+    rnd['ball'] = games.thimble_ball()
+    rnd['at'] = time.time()
+
+
+@require_POST
+def thimbles_start(request):
+    if request.session.get('thimbles'):
+        return _error('Сначала закончите текущую партию')
+    player = Player.for_request(request)
+    data, amount, error = _parse(request, player)
+    if error:
+        return _error(error)
+    if not player.settle('thimbles', amount, 0, 'ставка'):      # ставка списывается сразу
+        return _error('Недостаточно жетонов')
+    rnd = {'bet': amount, 'wins': 0}
+    _thimbles_new_ball(rnd)
+    request.session['thimbles'] = rnd
+    return JsonResponse({'ok': True, 'balance': player.balance, **_thimbles_state(rnd)})
+
+
+@require_POST
+def thimbles_round(request):
+    """Супер игра: новый ход после победы (шарик под новым стаканом)."""
+    rnd = request.session.get('thimbles')
+    if not rnd or not rnd['wins'] or rnd.get('ball') is not None:
+        return _error('Сейчас новый ход не начать')
+    _thimbles_new_ball(rnd)
+    request.session['thimbles'] = rnd
+    return JsonResponse({'ok': True, **_thimbles_state(rnd)})
+
+
+@require_POST
+def thimbles_pick(request):
+    rnd = request.session.get('thimbles')
+    if not rnd or rnd.get('ball') is None:
+        return _error('Ход не начат')
+    try:
+        cup = int(_json_body(request).get('cup'))
+    except (ValueError, TypeError):
+        return _error('Некорректный запрос')
+    if cup not in range(games.THIMBLES_CUPS):
+        return _error('Нет такого стакана')
+    if time.time() - rnd['at'] < games.THIMBLES_MIN_SEC:
+        return _error('Дождитесь, пока стаканы остановятся')
+
+    ball, win = rnd['ball'], rnd['ball'] == cup
+    player = Player.for_request(request)
+    if not win:
+        del request.session['thimbles']                          # ставка уже списана — партия сгорела
+        return JsonResponse({'ok': True, 'win': False, 'ball': ball, 'bet': rnd['bet'], 'balance': player.balance})
+    rnd['wins'] += 1
+    rnd['ball'] = None
+    request.session['thimbles'] = rnd                            # присваиваем заново, чтобы сессия сохранилась
+    return JsonResponse({'ok': True, **_thimbles_state(rnd), 'win': True, 'ball': ball, 'balance': player.balance})
+
+
+@require_POST
+def thimbles_cashout(request):
+    rnd = request.session.get('thimbles')
+    if not rnd or not rnd['wins']:
+        return _error('Нечего забирать')
+    state = _thimbles_state(rnd)
+    del request.session['thimbles']
+    player = Player.for_request(request)
+    player.settle('thimbles', 0, state['pot'], f"x{state['multiplier']}")
+    return JsonResponse({'ok': True, 'payout': state['pot'], 'balance': player.balance})
