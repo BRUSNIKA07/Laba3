@@ -4,7 +4,7 @@
   const game = $('#game'), wheel = $('#wheel'), ball = $('#ball');
   const pockets = JSON.parse($('#pockets').textContent);
   const STEP = 360 / pockets.length;           // угол одного сектора
-  const SPIN_MS = Casino.reducedMotion() ? 80 : 6000;
+  const SPIN_MS = 6000;
   let bet = null, wheelAngle = 0, ballAngle = 0;
 
   // Точка на окружности; угол отсчитывается от верха по часовой стрелке
@@ -23,13 +23,12 @@
       <text transform="rotate(${i * STEP}) translate(0 -${(R_IN + R_OUT) / 2})">${p.number}</text>
     </g>`;
   }).join('') + `<circle r="${R_IN}" class="cone"/><circle r="30" class="cone inner"/>
-    <text class="wheel-mark" y="2">fortuna.</text><text class="wheel-submark" y="9">ИГРА РАДИ ИГРЫ</text>`;
+    <path d="M0-30V30M-30 0H30" class="spoke"/><circle r="5" class="hub"/>`;
   wheel.style.transitionDuration = ball.style.transitionDuration = SPIN_MS + 'ms';
 
   $$('.bet').forEach(btn => btn.addEventListener('click', () => {
     bet = btn.dataset.bet;
-    $$('.bet').forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-pressed', String(b === btn)); });
-    say('Ставка выбрана. Можно крутить рулетку.');
+    $$('.bet').forEach(b => b.classList.toggle('active', b === btn));
   }));
 
   $('#spin').addEventListener('click', async () => {
@@ -56,7 +55,6 @@
       hit.classList.add('hit');
       wheel.append(hit);                       // рамка выпавшего сектора поверх соседних
       setBalance(r.balance);
-      Casino.addResult(r.number, r.color);
 
       const name = r.number === 0
         ? 'зеро'

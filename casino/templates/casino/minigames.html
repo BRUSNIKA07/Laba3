@@ -1,9 +1,27 @@
-{% extends 'casino/base.html' %}{% load static %}{% block title %}Мини-игры{% endblock %}{% block content %}
-<section class="mg" data-start="{% url 'minigame_start' %}" data-finish="{% url 'minigame_finish' %}" data-code="{% url 'secret_code' %}"><div class="page-heading"><div><h1>Маленькие игры.<br>Большой перерыв.</h1><p>Знакомые с детства. С жетонами за ваши успехи.</p></div><span class="page-badge">{% include 'casino/_icon.html' with name='gamepad' %} Без ставки</span></div>
-<div class="mg-tabs" role="tablist" aria-label="Выберите мини-игру">
-<button type="button" class="active" data-game="snake" id="tab-snake" role="tab" aria-selected="true" aria-controls="mg-panel"><span class="mg-tab-art snake-art">{% include 'casino/_icon.html' with name='snake' %}</span><span><b>Змейка</b><small>1 жетон за 3 яблока</small></span><span class="tab-arrow">{% include 'casino/_icon.html' with name='arrow' %}</span></button>
-<button type="button" data-game="flappy" id="tab-flappy" role="tab" aria-selected="false" aria-controls="mg-panel" tabindex="-1"><span class="mg-tab-art bird-art">{% include 'casino/_icon.html' with name='bird' %}</span><span><b>Жар-птица</b><small>1 жетон за 3 трубы</small></span><span class="tab-arrow">{% include 'casino/_icon.html' with name='arrow' %}</span></button>
-<button type="button" data-game="mines" id="tab-mines" role="tab" aria-selected="false" aria-controls="mg-panel" tabindex="-1"><span class="mg-tab-art mine-art">{% include 'casino/_icon.html' with name='mine' %}</span><span><b>Сапёр</b><small>8 жетонов за победу</small></span><span class="tab-arrow">{% include 'casino/_icon.html' with name='arrow' %}</span></button></div>
-<div class="arcade-layout" id="mg-panel" role="tabpanel" aria-labelledby="tab-snake"><div class="mg-board"><div class="mg-bar"><span class="arcade-title" id="mg-title">Змейка</span><span class="score-pill" id="mg-score">Очки: 0</span></div><div class="canvas-wrap"><canvas id="mg-canvas" width="300" height="300" tabindex="0" aria-label="Поле мини-игры"></canvas><div id="mg-mines" hidden></div><div class="game-idle" id="mg-idle"><span id="mg-idle-icon">{% include 'casino/_icon.html' with name='snake' %}</span><h2 id="mg-idle-title">Знакомая игра.<br>Новый рекорд?</h2><p>Нажмите «Начать игру», когда будете готовы</p></div></div><div class="arcade-bottom"><span id="mg-inline-help">Управление: стрелки или WASD</span><button type="button" id="mg-start" class="spin">Начать игру</button></div><p id="mg-msg" class="status" role="status"></p></div>
-<aside class="arcade-guide"><span class="guide-icon">{% include 'casino/_icon.html' with name='gamepad' %}</span><h2>Просто играйте.</h2><p id="mg-help">Собирайте яблоки, растите и не врезайтесь в стены или собственный хвост.</p><div class="keyboard" id="mg-keyboard" aria-hidden="true"><kbd>↑</kbd><span><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span></div><div class="reward-note"><span class="coin"></span><div><b id="mg-reward">3 яблока = 1 жетон</b><small>До {{ cap }} жетонов за партию</small></div></div><details class="rules code-details"><summary>Есть бонус-код? {% include 'casino/_icon.html' with name='chevron' %}</summary><form class="mg-code" id="mg-code" autocomplete="off"><label class="sr-only" for="mg-code-input">Бонус-код</label><input type="text" id="mg-code-input" placeholder="Введите код" maxlength="40" required><button type="submit" aria-label="Применить бонус-код">{% include 'casino/_icon.html' with name='arrow' %}</button></form></details></aside></div></section>
-{% endblock %}{% block scripts %}<script src="{% static 'casino/js/minigames.js' %}"></script>{% endblock %}
+{% extends 'casino/base.html' %}
+{% load static %}
+{% block title %}Мини-игры{% endblock %}
+{% block content %}
+<section class="mg" data-start="{% url 'minigame_start' %}" data-finish="{% url 'minigame_finish' %}" data-code="{% url 'secret_code' %}">
+  <h1>Мини-игры</h1>
+  <p class="mg-lead">Заработайте жетоны: за одну партию — не больше {{ cap }}.</p>
+
+  <div class="mg-tabs" role="tablist">
+    <button type="button" class="active" data-game="snake">Змейка <small>1 жетон за 3 яблока</small></button>
+    <button type="button" data-game="flappy">Flappy Bird <small>1 жетон за 3 трубы</small></button>
+    <button type="button" data-game="mines">Сапёр <small>8 жетонов за победу</small></button>
+  </div>
+
+  <div class="mg-board">
+    <div class="mg-bar"><span id="mg-score">Очки: 0</span><button type="button" id="mg-start">Старт</button></div>
+    <canvas id="mg-canvas" width="300" height="300"></canvas>
+    <div id="mg-mines" hidden></div>
+    <p id="mg-msg" class="status" aria-live="polite"></p>
+  </div>
+
+  <form class="mg-code" id="mg-code" autocomplete="off">
+    <input type="text" id="mg-code-input" aria-label="Код" placeholder="Код" maxlength="40">
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'casino/js/minigames.js' %}"></script>{% endblock %}
