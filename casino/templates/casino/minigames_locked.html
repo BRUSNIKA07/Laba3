@@ -1,0 +1,9 @@
+{% extends 'casino/base.html' %}
+{% block title %}Мини-игры{% endblock %}
+{% block content %}
+<section class="topup">
+  <h1>Мини-игры закрыты</h1>
+  <p class="topup-lead">Змейка, Жар-птица и Сапёр откроются после первого пополнения баланса.</p>
+  <a class="pack-link" href="{% url 'topup' %}">Пополнить жетоны</a>
+</section>
+{% endblock %}

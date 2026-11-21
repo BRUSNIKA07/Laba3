@@ -1,0 +1,14 @@
+{% extends 'casino/base.html' %}
+{% block title %}Оплата{% endblock %}
+{% block content %}
+<section class="topup">
+  <h1>Переход к оплате</h1>
+  <p class="topup-lead">{{ payment.tokens }} жетонов за {{ payment.amount_rub|floatformat:"-2" }} ₽.</p>
+  <form method="post" action="{{ action }}" id="pay-form" class="pack">
+    {% if test_mode %}{% csrf_token %}{% endif %}
+    {% for name, value in fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <button type="submit">{% if test_mode %}Имитировать оплату{% else %}Перейти в ЮMoney{% endif %}</button>
+  </form>
+</section>
+{% if not test_mode %}<script>document.getElementById('pay-form').submit()</script>{% endif %}
+{% endblock %}

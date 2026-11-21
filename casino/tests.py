@@ -1,10 +1,11 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from . import games
-from .models import Player
+from . import games, payments
+from .models import Payment, Player
 
 
 class GamesTests(SimpleTestCase):
@@ -28,13 +29,28 @@ class GamesTests(SimpleTestCase):
         self.assertEqual(result['payout'], 2 * games.SLOT_PAYTABLE[0][2])
 
 
+def fund(client, balance=10, paid=False):
+    """Создаёт гостя с нужным балансом (и при необходимости с подтверждённым пополнением)."""
+    client.get(reverse('roulette'))
+    player = Player.objects.get()
+    Player.objects.filter(pk=player.pk).update(balance=balance)
+    if paid:
+        Payment.objects.create(player=player, amount_rub=50, tokens=10, status=Payment.PAID)
+    return player
+
+
+class StartTests(TestCase):
+    def test_guest_starts_with_0_tokens(self):
+        self.client.get(reverse('roulette'))
+        self.assertEqual(Player.objects.get().balance, 0)
+
+
 class ApiTests(TestCase):
+    def setUp(self):
+        fund(self.client)
+
     def post(self, name, **data):
         return self.client.post(reverse(name), data, content_type='application/json')
-
-    def test_guest_starts_with_10_tokens(self):
-        self.client.get(reverse('roulette'))
-        self.assertEqual(Player.objects.get().balance, 10)
 
     def test_bet_is_1_to_5_and_not_above_balance(self):
         self.assertEqual(self.post('slots_spin', amount=0).status_code, 400)
@@ -52,9 +68,9 @@ class AccountTests(TestCase):
     def register(self, name='Player_1', pw='Secret123'):
         return self.client.post(reverse('register'), {'username': name, 'password': pw, 'password2': pw})
 
-    def test_register_creates_account_with_start_tokens_and_logs_in(self):
+    def test_register_creates_account_with_zero_tokens_and_logs_in(self):
         self.assertEqual(self.register().status_code, 302)
-        self.assertEqual(Player.objects.get(user__username='Player_1').balance, 10)
+        self.assertEqual(Player.objects.get(user__username='Player_1').balance, 0)
         self.assertEqual(self.client.get(reverse('roulette')).status_code, 200)
 
     def test_weak_passwords_rejected(self):
@@ -71,6 +87,9 @@ class AccountTests(TestCase):
 
 
 class MinigameTests(TestCase):
+    def setUp(self):
+        fund(self.client, paid=True)
+
     def test_reward_rules(self):
         self.assertEqual(games.minigame_reward('snake', 9, False, 60), 3)
         self.assertEqual(games.minigame_reward('snake', 999, False, 600), games.MINIGAME_CAP)
@@ -92,6 +111,17 @@ class MinigameTests(TestCase):
         self.assertEqual(res.json()['reward'], 3)
         self.assertEqual(res.json()['balance'], 13)
 
+    def test_minigames_locked_until_first_paid_topup(self):
+        Payment.objects.all().delete()
+        self.assertContains(self.client.get(reverse('minigames')), 'Мини-игры закрыты')
+        self.assertEqual(self.post('minigame_start', {'game': 'snake'}).status_code, 400)
+        self.assertEqual(self.post('minigame_finish', {'game': 'snake', 'score': 9}).status_code, 400)
+        self.assertEqual(self.post('secret_code', {'code': 'Месенев топ'}).status_code, 400)
+        self.assertEqual(Player.objects.get().balance, 10)
+        Payment.objects.create(player=Player.objects.get(), amount_rub=50, tokens=10, status=Payment.PAID)
+        self.assertNotContains(self.client.get(reverse('minigames')), 'Мини-игры закрыты')
+        self.assertEqual(self.post('minigame_start', {'game': 'snake'}).status_code, 200)
+
     def test_secret_code(self):
         self.assertEqual(self.post('secret_code', {'code': 'нет'}).status_code, 400)
         res = self.post('secret_code', {'code': ' Месенев ТОП '})
@@ -100,6 +130,9 @@ class MinigameTests(TestCase):
 
 
 class ThimblesTests(TestCase):
+    def setUp(self):
+        fund(self.client)
+
     """Шарик всегда под стаканом 0; время подменяем, чтобы пройти проверку «не слишком быстро»."""
     def post(self, name, **data):
         return self.client.post(reverse(name), data, content_type='application/json')
@@ -151,3 +184,64 @@ class ThimblesTests(TestCase):
         self.assertEqual(self.post('thimbles_cashout').status_code, 400)           # ещё нет побед
         with patch('casino.views.time.time', return_value=1001.0):                 # слишком быстро
             self.assertEqual(self.post('thimbles_pick', cup=0).status_code, 400)
+
+
+
+class PaymentTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('tester', password='Passw0rdX')
+        self.player = Player.objects.create(user=self.user)
+
+    def balance(self):
+        self.player.refresh_from_db()
+        return self.player.balance
+
+    def create(self, amount, promo=''):
+        self.client.login(username='tester', password='Passw0rdX')
+        self.client.post(reverse('topup_create'), {'amount': amount, 'promo': promo})
+        return Payment.objects.first()
+
+    def test_quote_rate_and_promo(self):
+        self.assertEqual(payments.quote(100)['total'], 20)
+        self.assertEqual(payments.quote(100, 'КАЗИНО ГОВНО')['total'], 220)       # +1000%
+        self.assertEqual(payments.quote(100, '  казино   говно ')['total'], 220)  # регистр и пробелы
+        self.assertEqual(payments.quote(100, 'другое')['total'], 20)
+        self.assertIsNone(payments.quote(1))
+        self.assertIsNone(payments.quote('abc'))
+        self.assertIsNone(payments.quote(payments.MAX_RUB + 1))
+
+    def test_order_is_created_with_server_side_total(self):
+        order = self.create(100, 'КАЗИНО ГОВНО')
+        self.assertEqual((order.tokens, order.bonus_tokens, order.status), (220, 200, Payment.PENDING))
+        self.assertEqual(self.balance(), 0)                      # пока не подтверждено — ничего не начислено
+
+    def test_confirm_credits_once_and_promo_works_on_every_order(self):
+        order = self.create(100, 'КАЗИНО ГОВНО')
+        self.assertTrue(payments.confirm(order))
+        self.assertFalse(payments.confirm(order))                  # повтор не начисляет
+        self.assertEqual(self.balance(), 220)
+        self.assertTrue(payments.confirm(self.create(50, 'КАЗИНО ГОВНО')))
+        self.assertEqual(self.balance(), 220 + 110)
+
+    def test_claim_does_not_credit_and_guest_is_redirected(self):
+        order = self.create(50)
+        self.client.post(reverse('topup_order', args=[order.label]))
+        order.refresh_from_db()
+        self.assertEqual(order.status, Payment.CLAIMED)
+        self.assertEqual(self.balance(), 0)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('topup')).status_code, 302)
+
+    def test_rejected_order_cannot_be_confirmed_by_claim_flow(self):
+        order = self.create(50)
+        Payment.objects.filter(pk=order.pk).update(status=Payment.REJECTED)
+        self.assertFalse(payments.confirm(order))
+        self.assertEqual(self.balance(), 0)
+
+    def test_first_confirmed_payment_unlocks_minigames(self):
+        order = self.create(50)
+        self.assertFalse(self.player.has_paid)
+        self.assertContains(self.client.get(reverse('minigames')), 'Мини-игры закрыты')
+        payments.confirm(order)
+        self.assertTrue(self.player.has_paid)
+        self.assertNotContains(self.client.get(reverse('minigames')), 'Мини-игры закрыты')

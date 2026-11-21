@@ -1,0 +1,15 @@
+{% extends 'casino/base.html' %}
+{% block title %}Оплата{% endblock %}
+{% block content %}
+<section class="topup">
+  {% if payment.status == 'paid' %}
+    <h1>Оплачено</h1>
+    <p class="topup-lead">Начислено {{ payment.tokens }} жетонов. Баланс: <b>{{ player.balance }}</b>.</p>
+    <a class="pack-link" href="{% url 'roulette' %}">Играть</a>
+  {% else %}
+    <h1>Ждём подтверждение</h1>
+    <p class="topup-lead">ЮMoney ещё не сообщил об оплате. Страница обновится сама, обычно это несколько секунд.</p>
+    <script>setTimeout(()=>location.reload(),3000)</script>
+  {% endif %}
+</section>
+{% endblock %}

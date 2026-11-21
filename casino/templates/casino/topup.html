@@ -1,0 +1,30 @@
+{% extends 'casino/base.html' %}
+{% block title %}Пополнение{% endblock %}
+{% block content %}
+<section class="topup">
+  <h1>Пополнить жетоны</h1>
+  <p class="topup-lead">Курс: {{ rate }} ₽ = 1 жетон. Оплата по QR, жетоны приходят после подтверждения платежа. Вывода денег нет, жетоны только для игры.</p>
+  <form method="post" action="{% url 'topup_create' %}" class="pack topup-form" id="topup-form">{% csrf_token %}
+    <label>Сумма, ₽<input type="number" name="amount" id="t-amount" min="{{ min_rub }}" max="{{ max_rub }}" step="1" value="100" required></label>
+    <label>Промокод<input type="text" name="promo" id="t-promo" maxlength="40" autocomplete="off" placeholder="если есть"></label>
+    <div class="quote" id="t-quote" aria-live="polite">&nbsp;</div>
+    <button type="submit" id="t-submit">Создать заказ</button>
+  </form>
+  {% if history %}
+  <h2>Последние заказы</h2>
+  <ul class="pay-history">
+    {% for p in history %}<li><a href="{% url 'topup_order' p.label %}">{{ p.reference }}</a><span>{{ p.tokens }} жет. · {{ p.amount_rub|floatformat:"-2" }} ₽</span><b class="st-{{ p.status }}">{{ p.get_status_display }}</b></li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+<script>
+(()=>{const a=document.getElementById('t-amount'),p=document.getElementById('t-promo'),q=document.getElementById('t-quote'),b=document.getElementById('t-submit');let t;
+function upd(){clearTimeout(t);t=setTimeout(async()=>{
+  try{const r=await fetch('{% url "topup_quote" %}?amount='+encodeURIComponent(a.value)+'&promo='+encodeURIComponent(p.value));const d=await r.json();
+    if(!d.ok){q.textContent=d.error;b.disabled=true;return}
+    b.disabled=d.total<1;
+    q.innerHTML='Вы получите: <b>'+d.total+'</b> жетонов'+(d.bonus?' (бонус +'+d.percent+'%: '+d.bonus+')':'')+(p.value.trim()&&!d.promo_ok?'<br><small>Промокод не найден</small>':'');
+  }catch(e){q.textContent=''}},200)}
+a.addEventListener('input',upd);p.addEventListener('input',upd);upd();})();
+</script>
+{% endblock %}

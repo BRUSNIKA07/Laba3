@@ -19,5 +19,9 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+    path('topup/', views.topup, name='topup'),
+    path('topup/quote/', views.topup_quote, name='topup_quote'),
+    path('topup/create/', views.topup_create, name='topup_create'),
+    path('topup/order/<str:label>/', views.topup_order, name='topup_order'),
     path('slots/spin/', views.slots_spin, name='slots_spin'),
 ]

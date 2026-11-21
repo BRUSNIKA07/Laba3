@@ -2,13 +2,15 @@ import json
 import time
 
 from django.contrib.auth import login, logout
+from django.contrib.staticfiles import finders
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from . import games
+from . import games, payments
 from .forms import LoginForm, RegisterForm
-from .models import Player
+from .models import Payment, Player
 
 AMOUNTS = range(games.MIN_BET, games.MAX_BET + 1)
 
@@ -56,7 +58,7 @@ def register_view(request):
         return redirect('index')
     form = RegisterForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        user = form.save()                      # заодно создаёт Player с 10 жетонами
+        user = form.save()                      # заодно создаёт Player с START_TOKENS жетонами
         login(request, user)
         return redirect('index')
     return render(request, 'casino/register.html', {'form': form, 'player': Player.for_request(request)})
@@ -79,9 +81,15 @@ def logout_view(request):
 
 
 # ── Мини-игры ────────────────────────────────────────────────────────────
+LOCKED = 'Мини-игры откроются после первого пополнения'
+
+
 def minigames(request):
+    player = Player.for_request(request)
+    if not player.has_paid:
+        return render(request, 'casino/minigames_locked.html', {'player': player, 'active': 'minigames'})
     return render(request, 'casino/minigames.html', {
-        'player': Player.for_request(request), 'active': 'minigames', 'cap': games.MINIGAME_CAP,
+        'player': player, 'active': 'minigames', 'cap': games.MINIGAME_CAP,
         'minigames': games.MINIGAMES,
     })
 
@@ -95,6 +103,8 @@ def _json_body(request):
 
 @require_POST
 def minigame_start(request):
+    if not Player.for_request(request).has_paid:
+        return _error(LOCKED)
     game = _json_body(request).get('game')
     if game not in games.MINIGAMES:
         return _error('Неизвестная игра')
@@ -105,6 +115,8 @@ def minigame_start(request):
 @require_POST
 def minigame_finish(request):
     """Сервер сам считает награду: время партии берёт из своей отметки, а не от браузера."""
+    if not Player.for_request(request).has_paid:
+        return _error(LOCKED)
     data = _json_body(request)
     started = request.session.pop('mg_start', None)
     if not started or started['game'] != data.get('game'):
@@ -122,6 +134,8 @@ def minigame_finish(request):
 
 @require_POST
 def secret_code(request):
+    if not Player.for_request(request).has_paid:
+        return _error(LOCKED)
     code = str(_json_body(request).get('code', '')).strip().casefold()
     if code != games.BONUS_CODE:
         return _error('Код не подошёл')
@@ -258,3 +272,56 @@ def thimbles_cashout(request):
     player = Player.for_request(request)
     player.settle('thimbles', 0, state['pot'], f"x{state['multiplier']}")
     return JsonResponse({'ok': True, 'payout': state['pot'], 'balance': player.balance})
+
+
+# ── Пополнение жетонов: сумма → QR банка → подтверждение админом ─────────
+QR_STATIC = 'casino/img/pay-qr.jpg'      # сюда кладётся картинка вашего QR
+
+
+def topup(request):
+    """Только для вошедших: гостевой баланс живёт в cookie и легко теряется."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+    player = Player.for_request(request)
+    return render(request, 'casino/topup.html', {
+        'player': player, 'active': 'topup', 'history': player.payments.all()[:10],
+        'rate': payments.RUB_PER_TOKEN, 'min_rub': payments.MIN_RUB, 'max_rub': payments.MAX_RUB,
+    })
+
+
+def topup_quote(request):
+    """Пересчёт суммы в жетоны для страницы (то же правило, что и при создании заказа)."""
+    q = payments.quote(request.GET.get('amount'), request.GET.get('promo', ''))
+    if q is None:
+        return _error(f'Сумма — от {payments.MIN_RUB} до {payments.MAX_RUB} ₽')
+    return JsonResponse({'ok': True, **q})
+
+
+@require_POST
+def topup_create(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    player = Player.for_request(request)
+    q = payments.quote(request.POST.get('amount'), request.POST.get('promo', ''))
+    open_orders = player.payments.filter(status__in=[Payment.PENDING, Payment.CLAIMED]).count()
+    if q is None or q['total'] < 1 or open_orders >= payments.MAX_OPEN_ORDERS:
+        return redirect('topup')
+    promo = payments.normalize_promo(request.POST.get('promo', '')) if q['promo_ok'] else ''
+    order = Payment.objects.create(player=player, amount_rub=q['amount'], tokens=q['total'],
+                                   bonus_tokens=q['bonus'], promo=promo)
+    return redirect('topup_order', label=order.label)
+
+
+def topup_order(request, label):
+    """Заказ: QR, сумма и код для комментария. Кнопка «Я оплатил» только помечает заказ для админа."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+    player = Player.for_request(request)
+    order = get_object_or_404(Payment, label=label, player=player)
+    if request.method == 'POST' and order.status == Payment.PENDING:
+        order.status = Payment.CLAIMED
+        order.save(update_fields=['status'])
+        return redirect('topup_order', label=order.label)
+    return render(request, 'casino/topup_order.html', {
+        'player': player, 'order': order, 'active': 'topup',
+        'qr': QR_STATIC if finders.find(QR_STATIC) else None})

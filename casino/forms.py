@@ -55,7 +55,7 @@ class RegisterForm(forms.Form):
 
     def save(self):
         user = User.objects.create_user(self.cleaned_data['username'], password=self.cleaned_data['password'])
-        Player.objects.create(user=user)        # у нового аккаунта 10 жетонов (START_TOKENS)
+        Player.objects.create(user=user)        # у нового аккаунта START_TOKENS жетонов (0)
         return user
 
 

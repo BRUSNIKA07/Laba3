@@ -1,0 +1,26 @@
+{% extends 'casino/base.html' %}
+{% block title %}Заказ {{ order.reference }}{% endblock %}
+{% block content %}
+<section class="topup">
+  <h1>Заказ {{ order.reference }}</h1>
+  <p class="topup-lead">{{ order.tokens }} жетонов{% if order.bonus_tokens %} (с бонусом {{ order.bonus_tokens }}){% endif %} за {{ order.amount_rub|floatformat:"-2" }} ₽.</p>
+  {% if order.status == 'paid' %}
+    <p class="topup-note">Оплата подтверждена, жетоны начислены. Баланс: <b>{{ player.balance }}</b>.</p>
+    <a class="pack-link" href="{% url 'roulette' %}">Играть</a>
+  {% elif order.status == 'rejected' %}
+    <p class="topup-note">Заказ отклонён. Создайте новый.</p>
+    <a class="pack-link" href="{% url 'topup' %}">Назад</a>
+  {% else %}
+    <div class="pack qr-box">
+      {% if qr %}{% load static %}<img src="{% static qr %}" alt="QR для оплаты" class="qr">{% else %}<p>Положите картинку QR в <code>casino/static/casino/img/pay-qr.jpg</code></p>{% endif %}
+      <b>Переведите {{ order.amount_rub|floatformat:"-2" }} ₽</b>
+      <span>В комментарии к переводу укажите: <b>{{ order.reference }}</b></span>
+    </div>
+    {% if order.status == 'pending' %}
+      <form method="post">{% csrf_token %}<button type="submit" class="pack-link">Я оплатил</button></form>
+    {% else %}
+      <p class="topup-note">Ждём подтверждения администратора. Обновите страницу чуть позже.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}
