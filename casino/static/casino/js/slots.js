@@ -20,7 +20,7 @@
     const before = $$('.cell', strip).map(c => c.dataset.s);
     const filler = Array.from({ length: 12 + index * 6 }, randomSymbol);
     const items = [...final, ...filler, ...before];
-    const ms = 1500 + index * 600;                 // барабаны останавливаются по очереди
+    const ms = Casino.reducedMotion() ? 30 : 1500 + index * 600;                 // барабаны останавливаются по очереди
 
     fill(strip, items);
     strip.style.transform = `translateY(${-(items.length - 3) / items.length * 100}%)`;

@@ -4,21 +4,31 @@
   const { $, $$ } = Casino;
   const canvas = $('#mg-canvas'), ctx = canvas.getContext('2d');
   const boardMines = $('#mg-mines'), scoreEl = $('#mg-score'), msg = $('#mg-msg'), startBtn = $('#mg-start');
-  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-  let current = 'snake', running = null;   // running: { stop() } пока идёт партия
+  let current = 'snake', running = null;
+  let requestPending = false;
+  const tabs = $$('.mg-tabs button');
+  const idle = $('#mg-idle');
+  const gameInfo = {
+    snake: { title: 'Змейка', idle: 'Знакомая игра. Новый рекорд?', help: 'Собирайте яблоки, растите и не врезайтесь в стены или собственный хвост.', keys: 'Стрелки, WASD или свайпы по полю', reward: '3 яблока = 1 жетон' },
+    flappy: { title: 'Жар-птица', idle: 'Ловите свой ритм.', help: 'Пролетайте между колоннами. Нажимайте пробел или касайтесь поля, чтобы взлететь.', keys: 'Пробел, ↑ или касание поля', reward: '3 трубы = 1 жетон' },
+    mines: { title: 'Сапёр', idle: 'Каждый ход имеет значение.', help: 'Откройте все безопасные клетки. Цифра показывает число мин рядом. Правый клик ставит флаг; на телефоне включите режим флага.', keys: 'Клик — открыть. Правый клик — флаг.', reward: 'Победа = 8 жетонов' },
+  };
+  function pending(on) { requestPending = on; tabs.forEach(b => { b.disabled = on; }); startBtn.disabled = on; }
+  function editable(e) { return e.target.closest('input,textarea,select,[contenteditable]'); }
 
   const icon = n => `<svg class="ic" aria-hidden="true"><use href="#sym-${n}"/></svg>`;
   const setScore = n => { scoreEl.textContent = 'Очки: ' + n; };
 
   async function finish(game, score, won) {
-    running = null; startBtn.disabled = false; startBtn.textContent = 'Ещё раз';
+    running = null; pending(true); startBtn.textContent = 'Ещё раз';
     try {
       const r = await Casino.post(root.dataset.finish, { game, score, won });
       Casino.setBalance(r.balance);
       msg.className = 'status ' + (r.reward ? 'win' : '');
       msg.textContent = r.reward ? `Итог: ${score}. Награда: +${r.reward} жетонов` : `Итог: ${score}. Жетоны не начислены`;
     } catch (e) { msg.className = 'status lose'; msg.textContent = e.message; }
+    finally { pending(false); }
   }
 
   // ── Змейка ──
@@ -33,7 +43,7 @@
     const keys = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
                    w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
     const turn = d => { if (d && (d[0] + dir[0] || d[1] + dir[1])) next = d; };
-    const onKey = e => { if (keys[e.key]) { e.preventDefault(); turn(keys[e.key]); } };
+    const onKey = e => { if (!editable(e) && keys[e.key]) { e.preventDefault(); turn(keys[e.key]); } };
     let sx, sy;
     const onTouchStart = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
     const onTouchEnd = e => {
@@ -48,7 +58,7 @@
     // Рисуем: поле-вышивка, змей с золотыми ромбами на спине, молодильное яблоко
     function draw() {
       for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-        ctx.fillStyle = (x + y) % 2 ? '#24130d' : '#2c1810'; ctx.fillRect(x * S, y * S, S, S);
+        ctx.fillStyle = (x + y) % 2 ? '#173536' : '#1b3b3a'; ctx.fillRect(x * S, y * S, S, S);
         ctx.fillStyle = '#ffffff14'; ctx.fillRect(x * S + S / 2 - 1, y * S + S / 2 - 1, 2, 2);
       }
       const c = ([x, y]) => [x * S + S / 2, y * S + S / 2];
@@ -111,7 +121,7 @@
     const W = canvas.width, H = canvas.height, GAP = 120, PW = 48, BX = 70, R = 12;
     let y = H / 2, vy = 0, pipes = [], score = 0, frame = 0, raf, over = false;
     const flap = () => { vy = -6.2; };
-    const onKey = e => { if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
+    const onKey = e => { if (!editable(e) && (e.code === 'Space' || e.key === 'ArrowUp')) { e.preventDefault(); flap(); } };
     addEventListener('keydown', onKey);
     canvas.addEventListener('pointerdown', flap);
 
@@ -203,12 +213,18 @@
     boardMines.innerHTML = '';
     const grid = document.createElement('div'); grid.className = 'mines-grid';
     const flagBtn = document.createElement('button');
-    flagBtn.type = 'button'; flagBtn.className = 'mines-flag'; flagBtn.textContent = 'Вымпел: выкл';
-    flagBtn.onclick = () => { flagMode = !flagMode; flagBtn.textContent = 'Вымпел: ' + (flagMode ? 'вкл' : 'выкл'); };
+    flagBtn.type = 'button'; flagBtn.className = 'mines-flag'; flagBtn.textContent = 'Флаг: выкл'; flagBtn.setAttribute('aria-pressed', 'false');
+    flagBtn.onclick = () => { flagMode = !flagMode; flagBtn.textContent = 'Флаг: ' + (flagMode ? 'вкл' : 'выкл'); flagBtn.setAttribute('aria-pressed', String(flagMode)); };
     boardMines.append(flagBtn, grid);
     cells = Array.from({ length: N * N }, (_, i) => {
       const el = document.createElement('button'); el.type = 'button'; el.className = 'cell';
+      el.setAttribute('aria-label', `Клетка ${Math.floor(i / N) + 1}, ${i % N + 1}`);
       el.onclick = () => (flagMode ? flag(i) : open(i));
+      el.addEventListener('keydown', e => {
+        const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -N, ArrowDown: N };
+        if (e.key === 'f' || e.key === 'ф') { e.preventDefault(); flag(i); }
+        if (e.key in moves) { e.preventDefault(); const j = i + moves[e.key]; if (j >= 0 && j < N*N) cells[j].el.focus(); }
+      });
       el.oncontextmenu = e => { e.preventDefault(); flag(i); };
       grid.append(el);
       return { el, mine: false, n: 0, open: false, flag: false };
@@ -231,11 +247,13 @@
     function flag(i) {
       const c = cells[i]; if (over || c.open) return;
       c.flag = !c.flag; c.el.innerHTML = c.flag ? icon('flag') : '';
+      c.el.setAttribute('aria-label', `Клетка ${Math.floor(i / N) + 1}, ${i % N + 1}${c.flag ? ', флаг' : ''}`);
     }
     function open(i) {
       const c = cells[i]; if (over || c.open || c.flag) return;
       if (!placed) place(i);
       c.open = true; c.el.classList.add('open');
+      c.el.setAttribute('aria-label', c.mine ? 'Мина' : `Открыто: рядом ${c.n} мин`);
       if (c.mine) {
         over = true; c.el.classList.add('boom');
         cells.forEach(k => { if (k.mine) k.el.innerHTML = icon('mine'); });
@@ -252,25 +270,48 @@
   const games = { snake, flappy, mines };
 
   function show(game) {
+    if (requestPending) return;
     if (running) { running.stop(); running = null; }
     current = game;
-    $$('.mg-tabs button').forEach(b => b.classList.toggle('active', b.dataset.game === game));
+    tabs.forEach(b => { const selected = b.dataset.game === game; b.classList.toggle('active', selected); b.setAttribute('aria-selected', String(selected)); b.tabIndex = selected ? 0 : -1; });
+    $('#mg-panel').setAttribute('aria-labelledby', 'tab-' + game);
+    const info = gameInfo[game];
+    $('#mg-title').textContent = info.title;
+    $('#mg-idle-title').textContent = info.idle;
+    $('#mg-help').textContent = info.help;
+    $('#mg-inline-help').textContent = info.keys;
+    $('#mg-reward').textContent = info.reward;
+    const art = document.querySelector(`[data-game="${game}"] .mg-tab-art svg`).cloneNode(true);
+    $('#mg-idle-icon').replaceChildren(art);
+    $('#mg-keyboard').hidden = game !== 'snake';
+    idle.hidden = false;
     const isMines = game === 'mines';
     canvas.hidden = isMines; boardMines.hidden = !isMines;
     boardMines.innerHTML = ''; setScore(0); msg.textContent = '';
-    startBtn.disabled = false; startBtn.textContent = 'Старт';
-    ctx.fillStyle = css('--surface'); ctx.fillRect(0, 0, canvas.width, canvas.height);
+    startBtn.disabled = false; startBtn.textContent = 'Начать игру';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
-  $$('.mg-tabs button').forEach(b => b.addEventListener('click', () => show(b.dataset.game)));
+  tabs.forEach((b, i) => {
+    b.addEventListener('click', () => show(b.dataset.game));
+    b.addEventListener('keydown', e => {
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(e.key) || requestPending) return;
+      e.preventDefault();
+      const j = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      show(tabs[j].dataset.game); tabs[j].focus();
+    });
+  });
 
   startBtn.addEventListener('click', async () => {
+    if (requestPending) return;
     if (running) running.stop();
-    startBtn.disabled = true; msg.textContent = '';
+    pending(true); msg.textContent = ''; msg.className = 'status';
     try { await Casino.post(root.dataset.start, { game: current }); }
-    catch (e) { msg.className = 'status lose'; msg.textContent = e.message; startBtn.disabled = false; return; }
-    setScore(0); startBtn.textContent = 'Идёт игра…';
+    catch (e) { msg.className = 'status lose'; msg.textContent = e.message; pending(false); return; }
+    pending(false); startBtn.disabled = true;
+    setScore(0); startBtn.textContent = 'Идёт игра…'; idle.hidden = true;
     running = games[current]();
+    if (current !== 'mines') canvas.focus({ preventScroll: true });
   });
 
   // Секретный код: проверяется на сервере.

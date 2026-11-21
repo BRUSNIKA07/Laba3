@@ -11,10 +11,11 @@
 
   const place = () => cups.forEach((c, i) => c.style.setProperty('--slot', pos[i]));
   function reset() {
-    cups.forEach(c => c.classList.remove('up', 'has-ball'));
+    cups.forEach(c => { c.classList.remove('up', 'has-ball'); c.disabled = true; });
   }
   function waitPick() {
     picking = true;
+    cups.forEach(c => { c.disabled = false; });
     table.classList.add('picking');
     say(`Где шарик? Угадаешь — ×${next}`);
   }
@@ -46,7 +47,7 @@
 
   function offer(r) {                                          // после победы: рискнуть или забрать
     next = r.next;
-    superBtn.textContent = `Супер игра ×${r.next}`;
+    superBtn.textContent = `Продолжить до ×${r.next}`;
     takeBtn.textContent = `Забрать ${r.pot}`;
     supers.hidden = false;
     say(`Угадал! ×${r.multiplier} — это ${r.pot} жетонов`, 'win');
@@ -70,6 +71,7 @@
     if (!picking) return;
     picking = false;
     table.classList.remove('picking');
+    cups.forEach(c => { c.disabled = true; });
     try {
       const r = await post(game.dataset.pick, { cup: i });
       cups[r.ball].classList.add('has-ball');
