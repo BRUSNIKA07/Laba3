@@ -1,0 +1,96 @@
+{# Спрайт: славянские обереги для слотов, стакан для наперстков, значки. Рисунки подключаются через <use href="#id">. #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="g-cup" x1="0" x2="1">
+      <stop offset="0" stop-color="#6e1f13"/><stop offset=".45" stop-color="#b9472c"/><stop offset="1" stop-color="#6e1f13"/>
+    </linearGradient>
+    <pattern id="p-zub" width="10" height="8" patternUnits="userSpaceOnUse"><path d="M0 0h10L5 8z" fill="#e8c46a"/></pattern>
+    <pattern id="p-zub-up" width="10" height="8" patternUnits="userSpaceOnUse"><path d="M0 8h10L5 0z" fill="#e8c46a"/></pattern>
+    <clipPath id="c-cup"><path d="M30 6Q50-2 70 6L90 110Q50 120 10 110z"/></clipPath>
+  </defs>
+
+  {# Засеянное поле: ромб с зёрнами #}
+  <symbol id="sym-pole" viewBox="0 0 64 64">
+    <path d="M32 4 60 32 32 60 4 32z" fill="#fff1d0" stroke="#b3202b" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M32 14 50 32 32 50 14 32z" fill="none" stroke="#3a1a10" stroke-width="2.5"/>
+    <g fill="#c9962e"><circle cx="32" cy="23" r="3"/><circle cx="41" cy="32" r="3"/><circle cx="32" cy="41" r="3"/><circle cx="23" cy="32" r="3"/></g>
+    <circle cx="32" cy="32" r="4" fill="#b3202b"/>
+  </symbol>
+
+  {# Громовик: шестиспицевое колесо Перуна #}
+  <symbol id="sym-gromovik" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="26" fill="#fff1d0" stroke="#b3202b" stroke-width="4"/>
+    <circle cx="32" cy="32" r="19" fill="none" stroke="#c9962e" stroke-width="2" stroke-dasharray="3 3"/>
+    <path d="M32 32 54 32M32 32 43 51M32 32 21 51M32 32 10 32M32 32 21 13M32 32 43 13" stroke="#3a1a10" stroke-width="3.5" stroke-linecap="round"/>
+    <g fill="#c9962e" stroke="#3a1a10" stroke-width="1.5"><circle cx="54" cy="32" r="3.5"/><circle cx="43" cy="51" r="3.5"/><circle cx="21" cy="51" r="3.5"/><circle cx="10" cy="32" r="3.5"/><circle cx="21" cy="13" r="3.5"/><circle cx="43" cy="13" r="3.5"/></g>
+    <circle cx="32" cy="32" r="5" fill="#b3202b" stroke="#3a1a10" stroke-width="1.5"/>
+  </symbol>
+
+  {# Лунница: месяц рогами вверх #}
+  <symbol id="sym-lunnitsa" viewBox="0 0 64 64">
+    <g transform="translate(0 8)">
+      <path d="M8 14A24 24 0 0 0 56 14A24 14 0 0 1 8 14z" fill="#c9962e" stroke="#7d5a14" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="8" cy="14" r="4" fill="#b3202b" stroke="#3a1a10" stroke-width="1.5"/>
+      <circle cx="56" cy="14" r="4" fill="#b3202b" stroke="#3a1a10" stroke-width="1.5"/>
+      <circle cx="32" cy="31" r="3" fill="#b3202b"/>
+      <circle cx="20" cy="27" r="2" fill="#fff1d0"/><circle cx="44" cy="27" r="2" fill="#fff1d0"/>
+      <circle cx="32" cy="9" r="5" fill="#fff1d0" stroke="#b3202b" stroke-width="2.5"/>
+    </g>
+  </symbol>
+
+  {# Жар-птица #}
+  <symbol id="sym-zhar" viewBox="0 0 64 64">
+    <path d="M26 38Q6 36 3 54Q18 52 28 44z" fill="#b3202b"/>
+    <path d="M26 40Q10 44 10 60Q22 54 30 46z" fill="#e8742a"/>
+    <path d="M24 36Q4 28 2 42Q16 44 27 40z" fill="#f1a82e"/>
+    <ellipse cx="34" cy="34" rx="15" ry="11" fill="#e8742a" stroke="#3a1a10" stroke-width="2"/>
+    <path d="M28 31Q38 17 47 32Q38 39 28 31z" fill="#ffd36a" stroke="#3a1a10" stroke-width="1.8"/>
+    <circle cx="47" cy="22" r="8" fill="#f1a82e" stroke="#3a1a10" stroke-width="2"/>
+    <path d="M44 15 42 8M48 14 49 6M52 16 56 10" stroke="#b3202b" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M54 21 63 24 54 27z" fill="#b3202b" stroke="#3a1a10" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="49" cy="20" r="1.9" fill="#3a1a10"/>
+    <path d="M31 45v9M38 45v9" stroke="#3a1a10" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+
+  {# Алатырь: восьмилучевая звезда #}
+  <symbol id="sym-alatyr" viewBox="0 0 64 64">
+    <path d="M32 3 38 26 61 32 38 38 32 61 26 38 3 32 26 26z" fill="#b3202b" stroke="#3a1a10" stroke-width="2" stroke-linejoin="round"/>
+    <path transform="rotate(45 32 32)" d="M32 12 36 28 52 32 36 36 32 52 28 36 12 32 28 28z" fill="#c9962e" stroke="#3a1a10" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="32" cy="32" r="6" fill="#fff1d0" stroke="#3a1a10" stroke-width="2"/>
+    <circle cx="32" cy="32" r="2.2" fill="#b3202b"/>
+  </symbol>
+
+  {# Солнце (значок в шапке) #}
+  <symbol id="sym-sun" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="11" fill="#f3dc9c" stroke="#7d5f1e" stroke-width="2"/>
+    <path d="M32 5v10M32 49v10M5 32h10M49 32h10M13 13l7 7M44 44l7 7M13 51l7-7M44 20l7-7" stroke="#d9b45c" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  {# Сапёр: колючий репей и красный вымпел #}
+  <symbol id="sym-mine" viewBox="0 0 24 24">
+    <path d="M12 1v22M1 12h22M4.5 4.5l15 15M19.5 4.5l-15 15" stroke="#2a1a14" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="6.5" fill="#b3202b" stroke="#2a1a14" stroke-width="1.5"/>
+    <circle cx="10" cy="10" r="1.8" fill="#ffd36a"/>
+  </symbol>
+  <symbol id="sym-flag" viewBox="0 0 24 24">
+    <path d="M6 3v19" stroke="#e8c46a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M7 4h13l-3.5 4.5L20 13H7z" fill="#c7343c" stroke="#7a1019" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M9.5 8.5h6" stroke="#ffd36a" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+
+  {# Стакан-наперсток: глиняный, с зубчатым поясом и ромбом #}
+  <symbol id="cup" viewBox="0 0 100 120">
+    <path d="M30 6Q50-2 70 6L90 110Q50 120 10 110z" fill="url(#g-cup)"/>
+    <g clip-path="url(#c-cup)">
+      <rect y="14" width="100" height="4" fill="#e8c46a"/>
+      <rect y="18" width="100" height="8" fill="url(#p-zub)"/>
+      <path d="M50 38 70 62 50 86 30 62z" fill="#f4e6c4" stroke="#e8c46a" stroke-width="3"/>
+      <path d="M50 49 59 62 50 75 41 62z" fill="#b3202b"/>
+      <circle cx="24" cy="62" r="3.5" fill="#e8c46a"/><circle cx="76" cy="62" r="3.5" fill="#e8c46a"/>
+      <rect y="92" width="100" height="8" fill="url(#p-zub-up)"/>
+      <rect y="100" width="100" height="5" fill="#e8c46a"/>
+    </g>
+    <path d="M36 12 24 98" stroke="#fff" stroke-opacity=".2" stroke-width="6" stroke-linecap="round"/>
+    <path d="M30 6Q50-2 70 6L90 110Q50 120 10 110z" fill="none" stroke="#2b0f08" stroke-width="2.5" stroke-linejoin="round"/>
+  </symbol>
+</svg>

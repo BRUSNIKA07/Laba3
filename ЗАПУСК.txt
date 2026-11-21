@@ -1,0 +1,22 @@
+Фортуна — обновлённый сайт
+
+Требуется Python 3.12 или новее.
+Откройте терминал в этой папке.
+
+Linux / macOS:
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+Windows (cmd):
+py -m venv .venv
+.venv\Scripts\activate
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+Адрес: http://127.0.0.1:8000/
+
+Включены новый дизайн, три последние правки подписей и текущая база данных.

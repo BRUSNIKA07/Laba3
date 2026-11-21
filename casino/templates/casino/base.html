@@ -1,0 +1,28 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru" data-theme="dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token }}"><meta name="theme-color" content="#102328">
+<title>{% block title %}{% endblock %} — Fortuna</title>
+<script>try{const t=localStorage.getItem('theme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{% static 'casino/css/style.css' %}"></head><body>
+{% include 'casino/_sprite.html' %}<a class="skip-link" href="#main-content">К игре</a>
+<aside class="sidebar" aria-label="Навигация">
+<a class="brand" href="{% url 'index' %}" aria-label="Fortuna — главная"><span class="brand-emblem">{% include 'casino/_icon.html' with name='spark' %}</span><span>fortuna<span class="brand-dot">.</span></span></a>
+<div class="sidebar-caption">Скоро точно повезет!</div>
+<nav class="game-nav" aria-label="Выбор игры">
+<a href="{% url 'roulette' %}"{% if active == 'roulette' %} class="active" aria-current="page"{% endif %}>{% include 'casino/_icon.html' with name='roulette' %}<span>Рулетка<small>Поймай свой момент</small></span></a>
+<a href="{% url 'slots' %}"{% if active == 'slots' %} class="active" aria-current="page"{% endif %}>{% include 'casino/_icon.html' with name='slots' %}<span>Слоты<small>Собери три символа</small></span></a>
+<a href="{% url 'thimbles' %}"{% if active == 'thimbles' %} class="active" aria-current="page"{% endif %}>{% include 'casino/_icon.html' with name='cups' %}<span>Напёрстки<small>Доверься вниманию</small></span></a>
+<a href="{% url 'minigames' %}"{% if active == 'minigames' %} class="active" aria-current="page"{% endif %}>{% include 'casino/_icon.html' with name='gamepad' %}<span>Мини-игры<small>Играй и копи жетоны</small></span></a>
+</nav>
+<a class="sidebar-invite" href="{% url 'minigames' %}"><span class="invite-symbol">{% include 'casino/_icon.html' with name='spark' %}</span><strong>Закончились жетоны?</strong><p>Змейка, Жар-птица и Сапёр. Жетоны за ваши рекорды.</p><span class="text-link">В мини-игры {% include 'casino/_icon.html' with name='arrow' %}</span></a>
+<div class="sidebar-footer"><span class="quiet-dot"></span> Только виртуальные жетоны</div></aside>
+<div class="app-shell"><header class="topbar"><span class="topbar-label">Игровая бурмалдятина</span><a class="mobile-brand" href="{% url 'index' %}">fortuna.</a><div class="tools">
+<button class="theme-switch" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Светлая тема" title="Переключить тему"><span class="theme-option theme-night">{% include 'casino/_icon.html' with name='moon' %}<span>Ночь</span></span><span class="theme-option theme-day">{% include 'casino/_icon.html' with name='sun' %}<span>День</span></span></button>
+<div class="wallet"><span class="coin" aria-hidden="true"></span><div><small>Ваши жетоны</small><b data-balance>{{ player.balance }}</b></div><a href="{% url 'minigames' %}" aria-label="Заработать жетоны" title="Заработать жетоны">{% include 'casino/_icon.html' with name='plus' %}</a><span id="balance-change" aria-hidden="true"></span></div>
+<div class="account"><button class="icon-btn" id="account-btn" type="button" aria-label="Аккаунт" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu">{% include 'casino/_icon.html' with name='user' %}</button><div class="menu" id="account-menu" hidden>
+{% if user.is_authenticated %}<b>{{ user.username }}</b><span>Жетонов: <b data-balance>{{ player.balance }}</b></span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Выйти</button></form>
+{% else %}<b>Добро пожаловать</b><small>Войдите, чтобы сохранять жетоны в аккаунте.</small><a class="menu-btn" href="{% url 'login' %}">Войти</a><a class="menu-btn secondary" href="{% url 'register' %}">Создать аккаунт</a>{% endif %}</div></div>
+</div></header><main class="stage" id="main-content">{% block content %}{% endblock %}</main><footer class="page-footer"><span>Fortuna. Игра ради игры.</span><span>Без денежных ставок</span></footer></div>
+<script src="{% static 'casino/js/common.js' %}"></script>{% block scripts %}{% endblock %}</body></html>

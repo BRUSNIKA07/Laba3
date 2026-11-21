@@ -1,0 +1,17 @@
+{% extends 'casino/base.html' %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<form class="auth" method="post" action="{% url 'login' %}" novalidate>
+  {% csrf_token %}
+  <h1>Вход</h1>
+  {{ form.non_field_errors }}
+  {% for f in form %}
+  <label>{{ f.label }}{{ f }}
+    {% if f.help_text %}<small>{{ f.help_text }}</small>{% endif %}
+    {{ f.errors }}
+  </label>
+  {% endfor %}
+  <button type="submit">Войти</button>
+  <p>Нет аккаунта? <a href="{% url 'register' %}">Создать</a></p>
+</form>
+{% endblock %}
